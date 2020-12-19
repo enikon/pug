@@ -80,10 +80,10 @@ def createBatches24concatenated(df):
     return np.concatenate(x_train), np.concatenate(y_train), np.concatenate(x_val), np.concatenate(y_val)
 
 
-def create_model():
+def create_rnn_model():
     model = keras.models.Sequential(
         keras.layers.SimpleRNN(
-            units=24,
+            units=1,
             batch_input_shape=(1, 24, 1),
             return_sequences=True,
             stateful=True
@@ -136,7 +136,7 @@ def main():
     print(x_val)
     print(y_val)
 
-    model = create_model()
+    model = create_rnn_model()
 
     model.fit(x_train, y_train, validation_data=(x_val, y_val), batch_size=1, epochs=40)
 
