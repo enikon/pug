@@ -43,11 +43,15 @@ def main():
         shutil.rmtree(args.output)
     os.makedirs(args.output)
 
-    train_set_path = os.path.join(args.output, 'train.dat')
-    eval_set_path = os.path.join(args.output, 'eval.dat')
-    test_set_path = os.path.join(args.output, 'test.dat')
+    train_set_path = os.path.join(args.output, 'train.py')
+    eval_set_path = os.path.join(args.output, 'eval.py')
+    test_set_path = os.path.join(args.output, 'test.py')
 
     print('START')
+
+    train_set = []
+    eval_set = []
+    test_set = []
 
     for input_dirs in os.listdir(args.input):
         input_cat_dir = os.path.join(args.input, input_dirs)
@@ -138,37 +142,20 @@ def main():
             dataset_slice_eval = slice(dataset_slice_train.stop, dataset_slice_train.stop + dataset_size_eval)
             dataset_slice_test = slice(dataset_slice_eval.stop, dataset_slice_eval.stop + dataset_size_test)
 
-            csv_export_params = {
-                "header": None,
-                "index": False,
-                "mode": 'a',
-                "float_format": '%.3f'
-            }
-
             if input_files_index < users_size_train:
-                pd.DataFrame(data=arr_stacked[dataset_slice_train, :]).to_csv(
-                    train_set_path,
-                    **csv_export_params
-                )
-                pd.DataFrame(data=arr_stacked[dataset_slice_eval, :]).to_csv(
-                    eval_set_path,
-                    **csv_export_params
-                )
-                pd.DataFrame(data=arr_stacked[dataset_slice_test, :]).to_csv(
-                    test_set_path,
-                    **csv_export_params
-                )
+                train_set.append(arr_stacked[dataset_slice_train, :])
+                eval_set.append(arr_stacked[dataset_slice_eval, :])
+                test_set.append(arr_stacked[dataset_slice_test, :])
             elif input_files_index < users_size_train + users_size_eval:
-                pd.DataFrame(data=arr_stacked).to_csv(
-                    eval_set_path,
-                    **csv_export_params
-                )
+                eval_set.append(arr_stacked)
             else:
-                pd.DataFrame(data=arr_stacked).to_csv(
-                    test_set_path,
-                    **csv_export_params
-                )
-        print("100%")
+                test_set.append(arr_stacked)
+
+        print("100.0 %")
+
+    np.save(train_set_path, train_set, allow_pickle=True)
+    np.save(eval_set_path, eval_set, allow_pickle=True)
+    np.save(test_set_path, test_set, allow_pickle=True)
 
 
 if __name__ == "__main__":
