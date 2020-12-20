@@ -18,6 +18,7 @@ def cycle_array(source, sequence_length, offset, array_range):
         target[:, i] = source[tmp_beg+i*offset: tmp_end+i*offset]
     return target
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', help="input root folder", default='../raw_dataset')
@@ -43,9 +44,9 @@ def main():
         shutil.rmtree(args.output)
     os.makedirs(args.output)
 
-    train_set_path = os.path.join(args.output, 'train.py')
-    eval_set_path = os.path.join(args.output, 'eval.py')
-    test_set_path = os.path.join(args.output, 'test.py')
+    train_set_path = os.path.join(args.output, 'train')
+    eval_set_path = os.path.join(args.output, 'eval')
+    test_set_path = os.path.join(args.output, 'test')
 
     print('START')
 
@@ -157,6 +158,11 @@ def main():
     np.save(eval_set_path, eval_set, allow_pickle=True)
     np.save(test_set_path, test_set, allow_pickle=True)
 
+
+# HOW TO LOAD THE DATABASE
+"""
+b = np.load('a.npy', allow_pickle=True)
+"""
 
 if __name__ == "__main__":
     main()
