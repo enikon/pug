@@ -144,13 +144,13 @@ def main():
             dataset_slice_test = slice(dataset_slice_eval.stop, dataset_slice_eval.stop + dataset_size_test)
 
             if input_files_index < users_size_train:
-                train_set.append(arr_stacked[dataset_slice_train, :])
-                eval_set.append(arr_stacked[dataset_slice_eval, :])
-                test_set.append(arr_stacked[dataset_slice_test, :])
+                train_set.extend(arr_stacked[dataset_slice_train, :])
+                eval_set.extend(arr_stacked[dataset_slice_eval, :])
+                test_set.extend(arr_stacked[dataset_slice_test, :])
             elif input_files_index < users_size_train + users_size_eval:
-                eval_set.append(arr_stacked)
+                eval_set.extend(arr_stacked)
             else:
-                test_set.append(arr_stacked)
+                test_set.extend(arr_stacked)
 
         print("100.0 %")
 

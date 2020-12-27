@@ -8,7 +8,6 @@ from tensorflow import keras
 from tensorflow.keras import layers
 
 
-
 # def createBatches(df):
 #     time = np.array(list(map(lambda d: (datetime.strptime(d, '%Y-%m-%d %H:%M')).hour, df.date.to_numpy())))
 #     x = df.x.to_numpy()
@@ -31,13 +30,13 @@ from tensorflow.keras import layers
 #
 #     return batches
 
-
 def parseData(df):
     time = np.array(list(map(lambda d: (datetime.strptime(d, '%Y-%m-%d %H:%M')).hour, df.date.to_numpy())))
     x = df.x.to_numpy()
     y = df.y.to_numpy()
 
     return time, x, y
+
 
 def createBatches24(df):
     time, x_train, y_train = parseData(df)
@@ -99,7 +98,6 @@ def create_rnn_model():
     print(model.summary())
 
     return model
-
 
 
 def main():
