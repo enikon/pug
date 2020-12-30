@@ -26,9 +26,11 @@ def create_model(show_summary: bool, n_features):
     model.add(keras.layers.Dense(1, kernel_initializer='normal'))
 
     model.compile(
+        optimizer=keras.optimizers.Adam(learning_rate=1e-4),
         loss=keras.losses.MeanSquaredError(),
-        optimizer="adam",
-        metrics=["accuracy"],
+        metrics=[
+            keras.metrics.RootMeanSquaredError(),
+            keras.metrics.MeanSquaredError()],
     )
 
     if show_summary:
@@ -82,6 +84,7 @@ def main():
         epochs=100,
         callbacks=[tensorboard_callback]
     )
+
     result = model.evaluate(
         x=test_set_x,
         y=test_set_y,
@@ -89,6 +92,7 @@ def main():
     )
 
     print(result)
+
 
 if __name__ == "__main__":
     main()
