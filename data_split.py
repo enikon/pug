@@ -39,7 +39,7 @@ def main():
 
     # Clear directory
     # TODO DONE WARNING failsafe
-    if os.path.realpath(args.output) == "D:\\Mikolaj\\Desktop\\PUG\\dataset" \
+    if os.path.realpath(args.output) == "C:\\GIT\\dataset" \
             and os.path.exists(args.output):
         shutil.rmtree(args.output)
     os.makedirs(args.output)

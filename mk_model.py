@@ -47,13 +47,13 @@ def create_model():
         padding='same'
     )(cnn1h)
     cnn2d = tf.keras.layers.Conv1D(
-        filters=25,
+        filters=5,
         kernel_size=3,
         activation='relu',
         padding='same'
     )(cnn1d)
     cnn2w = tf.keras.layers.Conv1D(
-        filters=25,
+        filters=5,
         kernel_size=3,
         activation='relu',
         padding='same'
@@ -62,13 +62,13 @@ def create_model():
     # RNN on sequential data
 
     lstm1h = tf.keras.layers.LSTM(
-        units=10
+        units=5
     )(cnn2h)
     lstm1d = tf.keras.layers.LSTM(
-        units=10
+        units=5
     )(cnn2d)
     lstm1w = tf.keras.layers.LSTM(
-        units=10
+        units=5
     )(cnn2w)
 
     # Concatenate all
@@ -82,9 +82,9 @@ def create_model():
     ])
 
     # DNN Categorical
-    dense1 = tf.keras.layers.Dense(40, activation=tf.nn.relu)(concat0)
-    dense2 = tf.keras.layers.Dense(20, activation=tf.nn.relu)(dense1)
-    outputs = tf.keras.layers.Dense(1, activation=None)(dense2)
+    dense1 = tf.keras.layers.Dense(15, activation=tf.nn.relu)(concat0)
+    dense2 = tf.keras.layers.Dense(10, activation=tf.nn.relu)(dense1)
+    outputs = tf.keras.layers.Dense(1, activation=tf.nn.sigmoid)(dense2)
 
     model = tf.keras.Model(
         inputs=[
@@ -117,18 +117,21 @@ def main():
     eval_set = np.load(os.path.join(args.input, 'eval.npy'), allow_pickle=True)
     test_set = np.load(os.path.join(args.input, 'test.npy'), allow_pickle=True)
     train_weights_set = np.load(os.path.join(args.input, 'train_weights.npy'), allow_pickle=True)
+    eval_weights_set = np.load(os.path.join(args.input, 'eval_weights.npy'), allow_pickle=True)
 
     debug = True
+    scale = 0.15
     if debug:
-        train_set = train_set[:100000]
-        eval_set = eval_set[:100]
-        test_set = test_set[:100]
-        train_weights_set = train_weights_set[:100000]
+        train_set = train_set[:round(len(train_set)*scale)]
+        eval_set = eval_set[:round(len(eval_set)*scale)]
+        test_set = test_set[:round(len(test_set)*scale)]
+        train_weights_set = train_weights_set[:round(len(train_weights_set)*scale)]
+        eval_weights_set = eval_weights_set[:round(len(eval_weights_set)*scale)]
 
     model = create_model()
 
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=5e-4),
         loss=tf.keras.losses.MeanSquaredError(),
         metrics=[
             tf.keras.metrics.RootMeanSquaredError(),
@@ -142,17 +145,18 @@ def main():
             axis=1
         ),
         y=train_set[:, -1],
+        sample_weight=train_weights_set,
         validation_data=(
             np.split(
                 eval_set[:, :-1],
                 split_list,
                 axis=1
             ),
-            eval_set[:, -1]
+            eval_set[:, -1],
+            eval_weights_set
         ),
-        batch_size=128, epochs=200,
+        batch_size=128, epochs=100,
         verbose=1,
-        sample_weight=train_weights_set,
         callbacks=[tensorboard_callback]
     )
     results = model.evaluate(
