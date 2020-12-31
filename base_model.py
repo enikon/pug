@@ -34,7 +34,10 @@ def show_confusion_matrix(real_y, pred_y):
         np.array(list(filter(lambda x: 0 < x < 1.01, map(discrete_normalization, np.reshape(pred_y, (pred_y.shape[0]))))))
         , name="pred"
     )
-    # TODO print outliners
+
+    print("outliners: ")
+    print(np.array(list(filter(lambda x: not (0 < x < 1.01), map(discrete_normalization, np.reshape(pred_y, (pred_y.shape[0])))))))
+
     confusion = pd.crosstab(real_res_y, pred_res_y)
     norm_confusion = confusion / confusion.sum(axis=1)
     plot_confusion_matrix(norm_confusion)
@@ -62,7 +65,7 @@ def create_model(show_summary: bool, n_features):
     model.add(keras.layers.Dense(1, kernel_initializer='normal'))
 
     model.compile(
-        optimizer=keras.optimizers.Adam(learning_rate=1e-3),
+        optimizer=keras.optimizers.Adam(learning_rate=1e-4),
         loss=keras.losses.MeanSquaredError(),
         metrics=[
             keras.metrics.RootMeanSquaredError(),
@@ -105,26 +108,26 @@ def main():
     eval_set_x, eval_set_y = extract_x_y_from_dataset(eval_set)
     test_set_x, test_set_y = extract_x_y_from_dataset(test_set)
 
-    # logs_dir = os.path.join(args.logs, datetime.now().strftime("%Y%m%d-%H%M%S"))
-    # tensorboard_callback = keras.callbacks.TensorBoard(log_dir=logs_dir)
-    #
-    # # model
-    # model = create_model(True, train_set_x.shape[1])
-    #
-    # # fit number_of_sets x number_of_features x 1
-    # model.fit(
-    #     x=train_set_x,
-    #     y=train_set_y,
-    #     validation_data=(eval_set_x, eval_set_y),
-    #     batch_size=512,
-    #     epochs=100,
-    #     callbacks=[tensorboard_callback]
-    # )
-    #
-    # model_save_path = os.path.join(args.output, "model" + datetime.now().strftime("%Y%m%d-%H%M%S"))
-    # save_model_files(model, model_save_path)
+    logs_dir = os.path.join(args.logs, datetime.now().strftime("%Y%m%d-%H%M%S"))
+    tensorboard_callback = keras.callbacks.TensorBoard(log_dir=logs_dir)
 
-    model = keras.models.load_model("C:\\GIT\\models\\model")
+    # model
+    model = create_model(True, train_set_x.shape[1])
+
+    # fit number_of_sets x number_of_features x 1
+    model.fit(
+        x=train_set_x,
+        y=train_set_y,
+        validation_data=(eval_set_x, eval_set_y),
+        batch_size=512,
+        epochs=100,
+        callbacks=[tensorboard_callback]
+    )
+
+    model_save_path = os.path.join(args.output, "model" + datetime.now().strftime("%Y%m%d-%H%M%S"))
+    save_model_files(model, model_save_path)
+
+    model = keras.models.load_model("C:\\GIT\\models\\model20201231-182211")
 
     print("")
     print("Test")
