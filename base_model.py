@@ -44,14 +44,39 @@ def main():
     parser.add_argument('-i', '--input', help="input folder with train.npy eval.npy and test.npy", default='../dataset')
     parser.add_argument('-o', '--output', help="output folder for models", default='../model')
     parser.add_argument('-l', '--logs', help="output folder for tensorboard logs", default='../logs/scalars/')
+    parser.add_argument('-c', '--checkpoints', help="output folder for checkpoint model", default='../checkpoints/')
 
     args = parser.parse_args()
     if not os.path.exists(args.input):
         print("MyError: No input directory found.")
         return
 
-    logs_dir = os.path.join(args.logs, datetime.now().strftime("%Y%m%d-%H%M%S"))
-    tensorboard_callback = keras.callbacks.TensorBoard(log_dir=logs_dir)
+    datetime_str = datetime.now().strftime("%Y%m%d-%H%M%S")
+
+    logs_dir = os.path.join(args.logs, datetime_str)
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logs_dir)
+
+    training_dir = os.path.normpath(
+        os.path.join(
+            args.checkpoints,
+            datetime_str
+        )
+    )
+    os.mkdir(training_dir)
+
+    # required as ModelCheckpoint is using sys not lib
+    checkpoint_filepath = os.path.join(
+        training_dir,
+        "saved-model-{epoch:03d}-{val_loss:.2f}.h5"
+    )
+
+    model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+        filepath=checkpoint_filepath,
+        save_freq='epoch',
+        period=5,
+        verbose=1,
+        monitor='val_loss'
+    )
 
     train_set_path = os.path.join(args.input, 'train' + DATASET_FILE_EXTENSION)
     eval_set_path = os.path.join(args.input, 'eval' + DATASET_FILE_EXTENSION)
@@ -82,7 +107,7 @@ def main():
         validation_data=(eval_set_x, eval_set_y),
         batch_size=128,
         epochs=100,
-        callbacks=[tensorboard_callback]
+        callbacks=[tensorboard_callback, model_checkpoint_callback]
     )
 
     result = model.evaluate(
