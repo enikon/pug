@@ -22,22 +22,25 @@ def plot_confusion_matrix(df_confusion, title='Confusion matrix'):
 
 
 def discrete_normalization(x):
-    return round(x * 10)*1.0/10.0
-        #int(10 * (int(x * 10.0 - 0.00001) / 10.0 + 0.1)) / 10.0
+    return max(min(round(x * 10) * 1.0 / 10.0, 1), 0.1)
 
 
 def show_confusion_matrix(real_y, pred_y):
     real_res_y = pd.Series(
-        np.array(list(filter(lambda x: 0 <= x < 1.01, map(discrete_normalization, np.reshape(real_y, (real_y.shape[0]))))))
+        np.array(list(map(discrete_normalization, np.reshape(real_y, (real_y.shape[0])))))
         , name="real"
     )
     pred_res_y = pd.Series(
-        np.array(list(filter(lambda x: 0 <= x < 1.01, map(discrete_normalization, np.reshape(pred_y, (pred_y.shape[0]))))))
+        np.array(list(map(discrete_normalization, np.reshape(pred_y, (pred_y.shape[0])))))
         , name="pred"
     )
 
     print("outliners: ")
-    print(np.array(list(filter(lambda x: not (0 <= x < 1.01), map(discrete_normalization, np.reshape(pred_y, (pred_y.shape[0])))))))
+    print(np.array(list(
+        filter(lambda x: not (0 <= x < 1.01),
+               map(discrete_normalization, np.reshape(pred_y, (pred_y.shape[0])))
+               )
+    )))
 
     confusion = pd.crosstab(real_res_y, pred_res_y, normalize='index')
 

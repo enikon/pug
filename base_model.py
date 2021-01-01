@@ -24,15 +24,15 @@ def extract_x_y_from_dataset(input_set):
 def create_model(show_summary: bool, n_features):
     model = keras.models.Sequential()
     model.add(keras.layers.Conv1D(filters=20, kernel_size=3, activation='relu', input_shape=(n_features, 1)))
-    model.add(keras.layers.LSTM(units=20, return_sequences=True))
-    model.add(keras.layers.LSTM(units=20, return_sequences=True))
-    model.add(keras.layers.LSTM(units=20))
-    model.add(keras.layers.Dense(20, activation='relu'))
-    model.add(keras.layers.Dense(10, activation='relu'))
+    model.add(keras.layers.LSTM(units=40, return_sequences=True))
+    model.add(keras.layers.LSTM(units=40, return_sequences=True))
+    model.add(keras.layers.LSTM(units=40))
+    model.add(keras.layers.Dense(150, activation='relu'))
+    model.add(keras.layers.Dense(75, activation='relu'))
     model.add(keras.layers.Dense(1, kernel_initializer='normal'))
 
     model.compile(
-        optimizer=keras.optimizers.Adam(learning_rate=1e-4),
+        optimizer=keras.optimizers.Adam(learning_rate=2e-4),
         loss=keras.losses.MeanSquaredError(),
         metrics=[
             keras.metrics.RootMeanSquaredError(),
@@ -56,6 +56,25 @@ def main():
     if not os.path.exists(args.input):
         print("MyError: No input directory found.")
         return
+
+    train_set_path = os.path.join(args.input, 'train' + DATASET_FILE_EXTENSION)
+    eval_set_path = os.path.join(args.input, 'eval' + DATASET_FILE_EXTENSION)
+    test_set_path = os.path.join(args.input, 'test' + DATASET_FILE_EXTENSION)
+
+    if not os.path.exists(train_set_path):
+        print("MyError: File train.npy not found in input directory.")
+    if not os.path.exists(eval_set_path):
+        print("MyError: File eval.npy not found in input directory.")
+    if not os.path.exists(test_set_path):
+        print("MyError: File test.npy not found in input directory.")
+
+    train_set = np.load(train_set_path, allow_pickle=True)
+    eval_set = np.load(eval_set_path, allow_pickle=True)
+    test_set = np.load(test_set_path, allow_pickle=True)
+
+    train_set_x, train_set_y = extract_x_y_from_dataset(train_set)
+    eval_set_x, eval_set_y = extract_x_y_from_dataset(eval_set)
+    test_set_x, test_set_y = extract_x_y_from_dataset(test_set)
 
     datetime_str = datetime.now().strftime("%Y%m%d-%H%M%S")
 
@@ -84,25 +103,6 @@ def main():
         monitor='val_loss'
     )
 
-    train_set_path = os.path.join(args.input, 'train' + DATASET_FILE_EXTENSION)
-    eval_set_path = os.path.join(args.input, 'eval' + DATASET_FILE_EXTENSION)
-    test_set_path = os.path.join(args.input, 'test' + DATASET_FILE_EXTENSION)
-
-    if not os.path.exists(train_set_path):
-        print("MyError: File train.npy not found in input directory.")
-    if not os.path.exists(eval_set_path):
-        print("MyError: File eval.npy not found in input directory.")
-    if not os.path.exists(test_set_path):
-        print("MyError: File test.npy not found in input directory.")
-
-    train_set = np.load(train_set_path, allow_pickle=True)
-    eval_set = np.load(eval_set_path, allow_pickle=True)
-    test_set = np.load(test_set_path, allow_pickle=True)
-
-    train_set_x, train_set_y = extract_x_y_from_dataset(train_set)
-    eval_set_x, eval_set_y = extract_x_y_from_dataset(eval_set)
-    test_set_x, test_set_y = extract_x_y_from_dataset(test_set)
-
     # model
     model = create_model(True, train_set_x.shape[1])
 
@@ -111,15 +111,15 @@ def main():
         x=train_set_x,
         y=train_set_y,
         validation_data=(eval_set_x, eval_set_y),
-        batch_size=64,
-        epochs=1,
+        batch_size=512,
+        epochs=150,
         callbacks=[tensorboard_callback, model_checkpoint_callback]
     )
 
-    #model_save_path = os.path.join(args.output, "model" + datetime.now().strftime("%Y%m%d-%H%M%S"))
-    #save_model_files(model, model_save_path)
+    # model_save_path = os.path.join(args.output, "model" + datetime.now().strftime("%Y%m%d-%H%M%S"))
+    # save_model_files(model, model_save_path)
 
-    #model = keras.models.load_model("C:\\GIT\\models\\model20201231-182211")
+    # model = keras.models.load_model("C:\\GIT\\models\\model20201231-182211")
 
     print("")
     print("Test")
