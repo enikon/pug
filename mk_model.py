@@ -5,15 +5,18 @@ import math
 import tensorflow as tf
 from itertools import accumulate
 from datetime import datetime
-
+from plots import show_confusion_matrix
+import troubleshooting
 #os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+troubleshooting.tf_init()
 
 split_counts = [24, 7, 7, 24, 7, 5]
 split_list = list(accumulate(split_counts[:-1]))
 
 
 def create_model():
-    #                               # batch size, num time steps, num features
+    #                    # batch size, num time steps, num features
     inputs_ch = tf.keras.Input(shape=(split_counts[0], 1))
     inputs_cd = tf.keras.Input(shape=(split_counts[1], 1))
     inputs_cw = tf.keras.Input(shape=(split_counts[2], 1))
@@ -201,6 +204,20 @@ def main():
         ),
         test_set[:, -1],
         batch_size=BATCH_SIZE
+    )
+
+    test_predict = model.predict(
+        np.split(
+            test_set[:, :-1],
+            split_list,
+            axis=1
+        ),
+        batch_size=BATCH_SIZE
+    )
+
+    show_confusion_matrix(
+        np.expand_dims(np.expand_dims(test_set[:, -1], -1), -1),
+        test_predict
     )
 
     h = 0

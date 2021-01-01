@@ -1,11 +1,17 @@
 import numpy as np
 import argparse
 import os
-import tensorflow as tf
 from tensorflow import keras
 from datetime import datetime
+from plots import show_confusion_matrix
+import troubleshooting
 
 DATASET_FILE_EXTENSION = ".npy"
+troubleshooting.tf_init()
+
+
+def save_model_files(model, model_path):
+    model.save(model_path, save_format='h5', overwrite=True)
 
 
 def extract_x_y_from_dataset(input_set):
@@ -17,12 +23,12 @@ def extract_x_y_from_dataset(input_set):
 
 def create_model(show_summary: bool, n_features):
     model = keras.models.Sequential()
-    model.add(keras.layers.Conv1D(filters=30, kernel_size=3, activation='relu', input_shape=(n_features, 1)))
-    model.add(keras.layers.Conv1D(filters=30, kernel_size=3, activation='relu'))
+    model.add(keras.layers.Conv1D(filters=20, kernel_size=3, activation='relu', input_shape=(n_features, 1)))
     model.add(keras.layers.LSTM(units=20, return_sequences=True))
     model.add(keras.layers.LSTM(units=20, return_sequences=True))
     model.add(keras.layers.LSTM(units=20))
-    model.add(keras.layers.Dense(100, activation='relu'))
+    model.add(keras.layers.Dense(20, activation='relu'))
+    model.add(keras.layers.Dense(10, activation='relu'))
     model.add(keras.layers.Dense(1, kernel_initializer='normal'))
 
     model.compile(
@@ -30,7 +36,7 @@ def create_model(show_summary: bool, n_features):
         loss=keras.losses.MeanSquaredError(),
         metrics=[
             keras.metrics.RootMeanSquaredError(),
-            keras.metrics.MeanSquaredError()],
+            keras.metrics.MeanSquaredError()]
     )
 
     if show_summary:
@@ -42,7 +48,7 @@ def create_model(show_summary: bool, n_features):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', help="input folder with train.npy eval.npy and test.npy", default='../dataset')
-    parser.add_argument('-o', '--output', help="output folder for models", default='../model')
+    parser.add_argument('-o', '--output', help="output folder for models", default='../models')
     parser.add_argument('-l', '--logs', help="output folder for tensorboard logs", default='../logs/scalars/')
     parser.add_argument('-c', '--checkpoints', help="output folder for checkpoint model", default='../checkpoints/')
 
@@ -54,7 +60,7 @@ def main():
     datetime_str = datetime.now().strftime("%Y%m%d-%H%M%S")
 
     logs_dir = os.path.join(args.logs, datetime_str)
-    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logs_dir)
+    tensorboard_callback = keras.callbacks.TensorBoard(log_dir=logs_dir)
 
     training_dir = os.path.normpath(
         os.path.join(
@@ -70,7 +76,7 @@ def main():
         "saved-model-{epoch:03d}-{val_loss:.2f}.h5"
     )
 
-    model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+    model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
         filepath=checkpoint_filepath,
         save_freq='epoch',
         period=5,
@@ -105,18 +111,31 @@ def main():
         x=train_set_x,
         y=train_set_y,
         validation_data=(eval_set_x, eval_set_y),
-        batch_size=128,
-        epochs=100,
+        batch_size=64,
+        epochs=1,
         callbacks=[tensorboard_callback, model_checkpoint_callback]
     )
 
-    result = model.evaluate(
+    #model_save_path = os.path.join(args.output, "model" + datetime.now().strftime("%Y%m%d-%H%M%S"))
+    #save_model_files(model, model_save_path)
+
+    #model = keras.models.load_model("C:\\GIT\\models\\model20201231-182211")
+
+    print("")
+    print("Test")
+
+    model.evaluate(
         x=test_set_x,
         y=test_set_y,
         batch_size=128
     )
 
-    print(result)
+    test_predict_y = \
+        model.predict(
+            x=test_set_x,
+            batch_size=128)
+
+    show_confusion_matrix(test_set_y, test_predict_y)
 
 
 if __name__ == "__main__":

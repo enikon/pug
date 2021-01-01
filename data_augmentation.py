@@ -1,5 +1,6 @@
 import numpy as np
 import argparse
+from data_summary import save_data_summary
 
 
 def k_bucketing_count_array(
@@ -33,7 +34,8 @@ def main():
     parser.add_argument('-it', '--input_train', help="input file for train", default='../dataset/train.npy')
     parser.add_argument('-ie', '--input_eval', help="input file for eval", default='../dataset/eval.npy')
     parser.add_argument('-ot', '--output_train', help="output file for train weights", default='../dataset/train_weights.npy')
-    parser.add_argument('-oe', '--output_eval', help="output file for eval weights", default='../dataset/eval_weights.npy')
+    parser.add_argument('-oe', '--output_eval', help="output file for summary", default='../dataset/eval_weights.npy')
+    parser.add_argument('-ds', '--data_summary', help="data summary file", default='../dataset_summary.txt')
 
     parser.add_argument('-b', '--buckets_number', help="number of buckets", default=20, type=int)
     parser.add_argument('-k', '--k_bucket_number', help="number of neighbouring buckets", default=2, type=int)
@@ -74,6 +76,8 @@ def main():
                                        args, alpha_max)
 
     np.save(args.output_eval, max_value / res_eval, allow_pickle=True)
+
+    save_data_summary(args.data_summary, buckets, 0.0, 1.0/args.buckets_number)
 
 
 if __name__ == "__main__":
