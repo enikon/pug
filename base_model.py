@@ -60,6 +60,8 @@ def main():
     train_set_path = os.path.join(args.input, 'train' + DATASET_FILE_EXTENSION)
     eval_set_path = os.path.join(args.input, 'eval' + DATASET_FILE_EXTENSION)
     test_set_path = os.path.join(args.input, 'test' + DATASET_FILE_EXTENSION)
+    train_weights_path = os.path.join(args.input, 'train_weights' + DATASET_FILE_EXTENSION)
+    eval_weights_path = os.path.join(args.input, 'eval_weights' + DATASET_FILE_EXTENSION)
 
     if not os.path.exists(train_set_path):
         print("MyError: File train.npy not found in input directory.")
@@ -67,10 +69,18 @@ def main():
         print("MyError: File eval.npy not found in input directory.")
     if not os.path.exists(test_set_path):
         print("MyError: File test.npy not found in input directory.")
+    if not os.path.exists(train_weights_path):
+        print("MyError: File train_weights.npy not found in input directory.")
+    if not os.path.exists(eval_weights_path):
+        print("MyError: File eval_weights.npy not found in input directory.")
 
     train_set = np.load(train_set_path, allow_pickle=True)
     eval_set = np.load(eval_set_path, allow_pickle=True)
     test_set = np.load(test_set_path, allow_pickle=True)
+    train_weights_set = np.load(train_weights_path, allow_pickle=True)
+    eval_weights_set = np.load(eval_weights_path, allow_pickle=True)
+    train_weights_set = np.expand_dims(np.expand_dims(train_weights_set, -1), -1)
+    eval_weights_set = np.expand_dims(np.expand_dims(eval_weights_set, -1), -1)
 
     train_set_x, train_set_y = extract_x_y_from_dataset(train_set)
     eval_set_x, eval_set_y = extract_x_y_from_dataset(eval_set)
@@ -110,9 +120,11 @@ def main():
     model.fit(
         x=train_set_x,
         y=train_set_y,
-        validation_data=(eval_set_x, eval_set_y),
-        batch_size=512,
+        sample_weight=train_weights_set,
+        validation_data=(eval_set_x, eval_set_y, eval_weights_set),
+        batch_size=256,
         epochs=150,
+        verbose=1,
         callbacks=[tensorboard_callback, model_checkpoint_callback]
     )
 
