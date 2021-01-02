@@ -22,7 +22,7 @@ def plot_confusion_matrix(df_confusion, title='Confusion matrix'):
 
 
 def discrete_normalization(x):
-    return max(min(round(x * 10) * 1.0 / 10.0, 1), 0.1)
+    return max(min(round(x * 10) * 1.0 / 10.0, 1), 0)
 
 
 def show_confusion_matrix(real_y, pred_y):

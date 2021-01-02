@@ -48,7 +48,7 @@ def create_model(show_summary: bool, n_features):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', help="input folder with train.npy eval.npy and test.npy", default='../dataset')
-    parser.add_argument('-o', '--output', help="output folder for models", default='../models')
+    parser.add_argument('-o', '--output', help="output folder for models", default='../model')
     parser.add_argument('-l', '--logs', help="output folder for tensorboard logs", default='../logs/scalars/')
     parser.add_argument('-c', '--checkpoints', help="output folder for checkpoint model", default='../checkpoints/')
 
