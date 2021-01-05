@@ -105,8 +105,9 @@ def create_model():
 
 def main():
     BATCH_SIZE = 64
-    EPOCHS = 20
+    EPOCHS = 30
     EPOCH_SAVE_PERIOD = 5
+    DATASET_PERCENTAGE = 0.1
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', help="input root folder", default='../dataset')
@@ -129,7 +130,7 @@ def main():
     eval_weights_set = np.load(os.path.join(args.input, 'eval_weights.npy'), allow_pickle=True)
 
     debug = True
-    scale = 0.01
+    scale = DATASET_PERCENTAGE
     if debug:
         train_set = train_set[:round(len(train_set) * scale)]
         eval_set = eval_set[:round(len(eval_set) * scale)]
