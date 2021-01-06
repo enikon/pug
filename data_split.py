@@ -4,6 +4,8 @@ import os
 import argparse
 import shutil
 
+from tensorflow.python.keras.utils.np_utils import to_categorical
+
 
 def cycle_array(source, sequence_length, offset, array_range):
     """
@@ -32,6 +34,8 @@ def main():
     parser.add_argument('-qd', '--sequence_days_size', help="how many days of the same hour in the input per one entry", default=7, type=int)
     parser.add_argument('-qw', '--sequence_weekdays_size', help="how many days of the same hour and weekday in the input per one cycle", default=7, type=int)
 
+    parser.add_argument('-cn', '--classes_number', help="how many classes in classification, 0 means regression",
+                        default=0, type=int)
     args = parser.parse_args()
     if not os.path.exists(args.input):
         print("MyError: No input directory found.")
@@ -124,12 +128,20 @@ def main():
 
             arr_loss = np.expand_dims(df_trimmed["loss"].to_numpy(), axis=-1)
 
+            # TODO Fuzzify class assignment for border classes
+
+            if args.classes_number != 0:
+                arr_loss = to_categorical(
+                    np.round(arr_loss * (args.classes_number-1)).astype(float),
+                    num_classes=args.classes_number
+                )
+
             arr_stacked = np.hstack((
                 arr_ch, arr_cd, arr_cw,
                 arr_hour, arr_weekday,
                 arr_cat,
                 arr_loss
-            ))
+             ))
 
             # -----------------------
             #  TRAIN/EVAL/TEST SPLIT
@@ -154,9 +166,9 @@ def main():
 
         print("100.0 %")
 
-    np.save(train_set_path, train_set, allow_pickle=True)
-    np.save(eval_set_path, eval_set, allow_pickle=True)
-    np.save(test_set_path, test_set, allow_pickle=True)
+    np.save(train_set_path, np.stack(train_set), allow_pickle=True)
+    np.save(eval_set_path, np.stack(eval_set), allow_pickle=True)
+    np.save(test_set_path, np.stack(test_set), allow_pickle=True)
 
 
 # HOW TO LOAD THE DATABASE

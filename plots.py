@@ -43,3 +43,21 @@ def show_confusion_matrix(real_y, pred_y):
 
     plot_confusion_matrix(confusion)
 
+
+def show_confusion_matrix_classes(real_y_class, pred_y_class, num_classes):
+
+    real_y = np.argmax(real_y_class, axis=1)*1.0/(num_classes-1)
+    pred_y = np.argmax(pred_y_class, axis=1)*1.0/(num_classes-1)
+
+    real_res_y = pd.Series(
+        np.array(real_y),
+        name="real"
+    )
+    pred_res_y = pd.Series(
+        np.array(pred_y),
+        name="pred"
+    )
+
+    confusion = pd.crosstab(real_res_y, pred_res_y, normalize='index')
+
+    plot_confusion_matrix(confusion)

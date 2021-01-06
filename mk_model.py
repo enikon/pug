@@ -5,9 +5,11 @@ import math
 import tensorflow as tf
 from itertools import accumulate
 from datetime import datetime
-from plots import show_confusion_matrix
+
+import utils
+from plots import show_confusion_matrix, show_confusion_matrix_classes
 import troubleshooting
-#os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 troubleshooting.tf_init()
 
@@ -15,7 +17,7 @@ split_counts = [24, 7, 7, 24, 7, 5]
 split_list = list(accumulate(split_counts[:-1]))
 
 
-def create_model():
+def create_model(classes_number):
     #                    # batch size, num time steps, num features
     inputs_ch = tf.keras.Input(shape=(split_counts[0], 1))
     inputs_cd = tf.keras.Input(shape=(split_counts[1], 1))
@@ -88,7 +90,11 @@ def create_model():
     # DNN Categorical
     dense1 = tf.keras.layers.Dense(15, activation=tf.nn.relu)(concat0)
     dense2 = tf.keras.layers.Dense(10, activation=tf.nn.relu)(dense1)
-    outputs = tf.keras.layers.Dense(1, activation=tf.nn.sigmoid)(dense2)
+
+    if classes_number == 0:
+        outputs = tf.keras.layers.Dense(1, activation=tf.nn.sigmoid)(dense2)
+    else:
+        outputs = tf.keras.layers.Dense(classes_number, activation=tf.nn.softmax)(dense2)
 
     model = tf.keras.Model(
         inputs=[
@@ -105,15 +111,19 @@ def create_model():
 
 def main():
     BATCH_SIZE = 64
-    EPOCHS = 30
+    EPOCHS = 5
     EPOCH_SAVE_PERIOD = 5
     DATASET_PERCENTAGE = 0.1
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input', help="input root folder", default='../dataset')
+    parser.add_argument('-i', '--input', help="input root folder", default='../dataset_classes')
     parser.add_argument('-o', '--output', help="output root folder", default='../model')
     parser.add_argument('-l', '--logs', help="output folder for tensorboard logs", default='../logs/scalars/')
     parser.add_argument('-c', '--checkpoints', help="output folder for checkpoint model", default='../checkpoints/')
+
+    parser.add_argument('-cn', '--classes_number', help="number of output classes", default=5, type=int)
+    parser.add_argument('-tt', '--train_type', help="name of train file", default='train')
+    parser.add_argument('-iw', '--is_weighted', help="will training use sample weights", default=True, type=utils.str2bool, nargs='?', const=True)
 
     # parser.add_argument('-qh', '--sequence_hours_size', help="length input per one entry", default=24, type=int)
     # parser.add_argument('-qd', '--sequence_days_size', help="how many days of the same hour in the input per one entry", default=7, type=int)
@@ -123,20 +133,25 @@ def main():
     # Model weights are saved at the end of every epoch, if it's the best seen
     # so far.
 
-    train_set = np.load(os.path.join(args.input, 'train.npy'), allow_pickle=True)
+    train_set = np.load(os.path.join(args.input, args.train_type+'.npy'), allow_pickle=True)
     eval_set = np.load(os.path.join(args.input, 'eval.npy'), allow_pickle=True)
     test_set = np.load(os.path.join(args.input, 'test.npy'), allow_pickle=True)
-    train_weights_set = np.load(os.path.join(args.input, 'train_weights.npy'), allow_pickle=True)
-    eval_weights_set = np.load(os.path.join(args.input, 'eval_weights.npy'), allow_pickle=True)
+    train_weights_set = None
+    eval_weights_set = None
 
-    debug = True
+    if args.is_weighted:
+        train_weights_set = np.load(os.path.join(args.input, 'train_weights.npy'), allow_pickle=True)
+        eval_weights_set = np.load(os.path.join(args.input, 'eval_weights.npy'), allow_pickle=True)
+
+    debug = False
     scale = DATASET_PERCENTAGE
     if debug:
         train_set = train_set[:round(len(train_set) * scale)]
         eval_set = eval_set[:round(len(eval_set) * scale)]
         test_set = test_set[:round(len(test_set) * scale)]
-        train_weights_set = train_weights_set[:round(len(train_weights_set) * scale)]
-        eval_weights_set = eval_weights_set[:round(len(eval_weights_set) * scale)]
+        if args.is_weighted:
+            train_weights_set = train_weights_set[:round(len(train_weights_set) * scale)]
+            eval_weights_set = eval_weights_set[:round(len(eval_weights_set) * scale)]
 
     # Callbacks
 
@@ -167,30 +182,47 @@ def main():
         monitor='val_loss'
     )
 
-    model = create_model()
-    model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=5e-4),
-        loss=tf.keras.losses.MeanSquaredError(),
-        metrics=[
-            tf.keras.metrics.RootMeanSquaredError(),
-            tf.keras.metrics.MeanAbsoluteError(),
-        ]
-    )
+    model = create_model(args.classes_number)
+    if args.classes_number == 0:
+        model.compile(
+            optimizer=tf.keras.optimizers.Adam(learning_rate=5e-4),
+            loss=tf.keras.losses.MeanSquaredError(),
+            metrics=[
+                tf.keras.metrics.RootMeanSquaredError(),
+                tf.keras.metrics.MeanAbsoluteError(),
+            ]
+        )
+    else:
+        model.compile(
+            optimizer=tf.keras.optimizers.Adam(learning_rate=5e-4),
+            loss=tf.keras.losses.CategoricalCrossentropy(),
+            metrics=[
+                tf.keras.metrics.AUC(),
+                tf.keras.metrics.Accuracy(),
+            ]
+        )
+
+    x_slice = slice(0, 74)
+    y_slice = slice(74, 75)
+
+    if args.classes_number > 0:
+        y_slice = slice(74, 75+args.classes_number)
+
     model.fit(
         x=np.split(
-            train_set[:, :-1],
+            train_set[:, x_slice],
             split_list,
             axis=1
         ),
-        y=train_set[:, -1],
+        y=train_set[:, y_slice],
         sample_weight=train_weights_set,
         validation_data=(
             np.split(
-                eval_set[:, :-1],
+                eval_set[:, x_slice],
                 split_list,
                 axis=1
             ),
-            eval_set[:, -1],
+            eval_set[:, y_slice],
             eval_weights_set
         ),
         batch_size=BATCH_SIZE, epochs=EPOCHS,
@@ -199,26 +231,27 @@ def main():
     )
     results = model.evaluate(
         np.split(
-            test_set[:, :-1],
+            test_set[:, x_slice],
             split_list,
             axis=1
         ),
-        test_set[:, -1],
+        test_set[:, y_slice],
         batch_size=BATCH_SIZE
     )
 
     test_predict = model.predict(
         np.split(
-            test_set[:, :-1],
+            test_set[:, x_slice],
             split_list,
             axis=1
         ),
         batch_size=BATCH_SIZE
     )
 
-    show_confusion_matrix(
-        np.expand_dims(np.expand_dims(test_set[:, -1], -1), -1),
-        test_predict
+    show_confusion_matrix_classes(
+        test_set[:, y_slice],
+        test_predict,
+        args.classes_number
     )
 
     h = 0
