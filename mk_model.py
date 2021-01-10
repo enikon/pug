@@ -11,7 +11,7 @@ from sklearn.metrics import f1_score
 import utils
 from plots import show_confusion_matrix, show_confusion_matrix_classes
 import troubleshooting
-# os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 troubleshooting.tf_init()
 
@@ -163,77 +163,77 @@ def main():
 
     # Callbacks
 
-    # datetime_str = datetime.now().strftime("%Y%m%d-%H%M%S")
-    #
-    # logs_dir = os.path.join(args.logs, datetime_str)
-    # tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logs_dir)
-    #
-    # training_dir = os.path.normpath(
-    #     os.path.join(
-    #         args.checkpoints,
-    #         datetime_str
-    #     )
-    # )
-    # os.mkdir(training_dir)
-    #
-    # # required as ModelCheckpoint is using sys not lib
-    # checkpoint_filepath = os.path.join(
-    #     training_dir,
-    #     "saved-model-{epoch:03d}-{val_loss:.2f}.h5"
-    # )
-    #
-    # model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-    #     filepath=checkpoint_filepath,
-    #     save_freq='epoch', #EPOCH_SAVE_PERIOD * (int(math.ceil(len(train_set) / BATCH_SIZE))) + 1,
-    #     period=EPOCH_SAVE_PERIOD,
-    #     verbose=1,
-    #     monitor='val_loss'
-    # )
-    #
-    # model = create_model(args.classes_number)
-    # if args.classes_number == 0:
-    #     model.compile(
-    #         optimizer=tf.keras.optimizers.Adam(learning_rate=5e-4),
-    #         loss=tf.keras.losses.MeanSquaredError(),
-    #         metrics=[
-    #             tf.keras.metrics.RootMeanSquaredError(),
-    #             tf.keras.metrics.MeanAbsoluteError(),
-    #         ]
-    #     )
-    # else:
-    #     model.compile(
-    #         optimizer=tf.keras.optimizers.Adam(learning_rate=5e-4),
-    #         loss=tf.keras.losses.CategoricalCrossentropy(),
-    #         metrics=[
-    #             tf.keras.metrics.AUC(),
-    #             tf.keras.metrics.CategoricalAccuracy(),
-    #         ]
-    #     )
-    #
-    #
-    # model.fit(
-    #     x=np.split(
-    #         train_set[:, x_slice],
-    #         split_list,
-    #         axis=1
-    #     ),
-    #     y=train_set[:, y_slice],
-    #     sample_weight=train_weights_set,
-    #     validation_data=(
-    #         np.split(
-    #             eval_set[:, x_slice],
-    #             split_list,
-    #             axis=1
-    #         ),
-    #         eval_set[:, y_slice],
-    #         eval_weights_set
-    #     ),
-    #     batch_size=BATCH_SIZE, epochs=EPOCHS,
-    #     verbose=1,
-    #     callbacks=[tensorboard_callback, model_checkpoint_callback]
-    # )
+    datetime_str = datetime.now().strftime("%Y%m%d-%H%M%S")
 
-    model = tf.keras.models.load_model("C:\\GIT\\checkpoints\\20210110-120301\\saved-model-010-1.59.h5")
+    logs_dir = os.path.join(args.logs, datetime_str)
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logs_dir)
+
+    training_dir = os.path.normpath(
+        os.path.join(
+            args.checkpoints,
+            datetime_str
+        )
+    )
+    os.mkdir(training_dir)
+
+    # required as ModelCheckpoint is using sys not lib
+    checkpoint_filepath = os.path.join(
+        training_dir,
+        "saved-model-{epoch:03d}-{val_loss:.2f}.h5"
+    )
+
+    model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+        filepath=checkpoint_filepath,
+        save_freq='epoch', #EPOCH_SAVE_PERIOD * (int(math.ceil(len(train_set) / BATCH_SIZE))) + 1,
+        period=EPOCH_SAVE_PERIOD,
+        verbose=1,
+        monitor='val_loss'
+    )
+
+    model = create_model(args.classes_number)
+    if args.classes_number == 0:
+        model.compile(
+            optimizer=tf.keras.optimizers.Adam(learning_rate=5e-4),
+            loss=tf.keras.losses.MeanSquaredError(),
+            metrics=[
+                tf.keras.metrics.RootMeanSquaredError(),
+                tf.keras.metrics.MeanAbsoluteError(),
+            ]
+        )
+    else:
+        model.compile(
+            optimizer=tf.keras.optimizers.Adam(learning_rate=5e-4),
+            loss=tf.keras.losses.CategoricalCrossentropy(),
+            metrics=[
+                tf.keras.metrics.AUC(),
+                tf.keras.metrics.CategoricalAccuracy(),
+            ]
+        )
+
+
+    model.fit(
+        x=np.split(
+            train_set[:, x_slice],
+            split_list,
+            axis=1
+        ),
+        y=train_set[:, y_slice],
+        sample_weight=train_weights_set,
+        validation_data=(
+            np.split(
+                eval_set[:, x_slice],
+                split_list,
+                axis=1
+            ),
+            eval_set[:, y_slice],
+            eval_weights_set
+        ),
+        batch_size=BATCH_SIZE, epochs=EPOCHS,
+        verbose=1,
+        callbacks=[tensorboard_callback, model_checkpoint_callback]
+    )
+
+    # model = tf.keras.models.load_model("C:\\GIT\\checkpoints\\20210110-120301\\saved-model-010-1.59.h5")
 
     results = model.evaluate(
         np.split(
