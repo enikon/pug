@@ -5,6 +5,8 @@ import math
 import tensorflow as tf
 from itertools import accumulate
 from datetime import datetime
+from sklearn.metrics import f1_score
+
 
 import utils
 from plots import show_confusion_matrix, show_confusion_matrix_classes
@@ -110,8 +112,8 @@ def create_model(classes_number):
 
 
 def main():
-    BATCH_SIZE = 64
-    EPOCHS = 5
+    BATCH_SIZE = 512
+    EPOCHS = 10
     EPOCH_SAVE_PERIOD = 5
     DATASET_PERCENTAGE = 0.1
 
@@ -152,6 +154,12 @@ def main():
         if args.is_weighted:
             train_weights_set = train_weights_set[:round(len(train_weights_set) * scale)]
             eval_weights_set = eval_weights_set[:round(len(eval_weights_set) * scale)]
+
+    x_slice = slice(0, 74)
+    y_slice = slice(74, 75)
+
+    if args.classes_number > 0:
+        y_slice = slice(74, 75+args.classes_number)
 
     # Callbacks
 
@@ -198,15 +206,10 @@ def main():
             loss=tf.keras.losses.CategoricalCrossentropy(),
             metrics=[
                 tf.keras.metrics.AUC(),
-                tf.keras.metrics.Accuracy(),
+                tf.keras.metrics.CategoricalAccuracy(),
             ]
         )
 
-    x_slice = slice(0, 74)
-    y_slice = slice(74, 75)
-
-    if args.classes_number > 0:
-        y_slice = slice(74, 75+args.classes_number)
 
     model.fit(
         x=np.split(
@@ -229,6 +232,9 @@ def main():
         verbose=1,
         callbacks=[tensorboard_callback, model_checkpoint_callback]
     )
+
+    # model = tf.keras.models.load_model("C:\\GIT\\checkpoints\\20210110-120301\\saved-model-010-1.59.h5")
+
     results = model.evaluate(
         np.split(
             test_set[:, x_slice],
@@ -253,6 +259,14 @@ def main():
         test_predict,
         args.classes_number
     )
+
+    selected_real = np.array(list(map(lambda tab: np.argmax(tab), test_set[:, y_slice])))
+    selected_pred = np.array(list(map(lambda tab: np.argmax(tab), test_predict)))
+
+    f1 = f1_score(selected_real, selected_pred, average='macro')
+
+    print("F1_score_test: ")
+    print(f1)
 
     h = 0
     h += 1
