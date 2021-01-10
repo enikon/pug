@@ -112,10 +112,11 @@ def create_model(classes_number):
 
 
 def main():
-    BATCH_SIZE = 512
-    EPOCHS = 1
-    EPOCH_SAVE_PERIOD = 1
-    DATASET_PERCENTAGE = 0.1
+
+    BATCH_SIZE = 64
+    EPOCHS = 10
+    EPOCH_SAVE_PERIOD = 5
+    DATASET_PERCENTAGE = 0.001
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', help="input root folder", default='../dataset_classes')
@@ -145,7 +146,7 @@ def main():
         train_weights_set = np.load(os.path.join(args.input, 'train_weights.npy'), allow_pickle=True)
         eval_weights_set = np.load(os.path.join(args.input, 'eval_weights.npy'), allow_pickle=True)
 
-    debug = False
+    debug = True
     scale = DATASET_PERCENTAGE
     if debug:
         train_set = train_set[:round(len(train_set) * scale)]
@@ -154,12 +155,6 @@ def main():
         if args.is_weighted:
             train_weights_set = train_weights_set[:round(len(train_weights_set) * scale)]
             eval_weights_set = eval_weights_set[:round(len(eval_weights_set) * scale)]
-
-    x_slice = slice(0, 74)
-    y_slice = slice(74, 75)
-
-    if args.classes_number > 0:
-        y_slice = slice(74, 75+args.classes_number)
 
     # Callbacks
 
@@ -207,9 +202,16 @@ def main():
             metrics=[
                 tf.keras.metrics.AUC(),
                 tf.keras.metrics.CategoricalAccuracy(),
+                tf.keras.metrics.CategoricalHinge(),
                 tfa.metrics.F1Score(num_classes=args.classes_number)
             ]
         )
+
+    x_slice = slice(0, 74)
+    y_slice = slice(74, 75)
+
+    if args.classes_number > 0:
+        y_slice = slice(74, 75 + args.classes_number)
 
     # model = tf.keras.models.load_model("C:\\GIT\\checkpoints\\20210110-150053\\saved-model-025-1.02.h5")
 
