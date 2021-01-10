@@ -111,9 +111,9 @@ def create_model(classes_number):
 
 def main():
     BATCH_SIZE = 64
-    EPOCHS = 5
+    EPOCHS = 10
     EPOCH_SAVE_PERIOD = 5
-    DATASET_PERCENTAGE = 0.1
+    DATASET_PERCENTAGE = 0.001
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', help="input root folder", default='../dataset_classes')
@@ -143,7 +143,7 @@ def main():
         train_weights_set = np.load(os.path.join(args.input, 'train_weights.npy'), allow_pickle=True)
         eval_weights_set = np.load(os.path.join(args.input, 'eval_weights.npy'), allow_pickle=True)
 
-    debug = False
+    debug = True
     scale = DATASET_PERCENTAGE
     if debug:
         train_set = train_set[:round(len(train_set) * scale)]
@@ -198,7 +198,8 @@ def main():
             loss=tf.keras.losses.CategoricalCrossentropy(),
             metrics=[
                 tf.keras.metrics.AUC(),
-                tf.keras.metrics.Accuracy(),
+                tf.keras.metrics.CategoricalAccuracy(),
+                tf.keras.metrics.CategoricalHinge()
             ]
         )
 
