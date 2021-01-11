@@ -6,7 +6,7 @@ import tensorflow as tf
 from itertools import accumulate
 from datetime import datetime
 from sklearn.metrics import f1_score
-
+import tensorflow_addons as tfa
 
 import utils
 from plots import show_confusion_matrix, show_confusion_matrix_classes
@@ -200,7 +200,8 @@ def main():
             metrics=[
                 tf.keras.metrics.AUC(),
                 tf.keras.metrics.CategoricalAccuracy(),
-                tf.keras.metrics.CategoricalHinge()
+                tf.keras.metrics.CategoricalHinge(),
+                tfa.metrics.F1Score(num_classes=args.classes_number)
             ]
         )
 
@@ -209,6 +210,8 @@ def main():
 
     if args.classes_number > 0:
         y_slice = slice(74, 75 + args.classes_number)
+
+    # model = tf.keras.models.load_model("C:\\GIT\\checkpoints\\20210110-150053\\saved-model-025-1.02.h5")
 
     model.fit(
         x=np.split(
@@ -231,8 +234,6 @@ def main():
         verbose=2,
         callbacks=[tensorboard_callback, model_checkpoint_callback]
     )
-
-    # model = tf.keras.models.load_model("C:\\GIT\\checkpoints\\20210110-120301\\saved-model-010-1.59.h5")
 
     results = model.evaluate(
         np.split(
