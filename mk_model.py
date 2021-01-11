@@ -11,7 +11,7 @@ from sklearn.metrics import f1_score
 import utils
 from plots import show_confusion_matrix, show_confusion_matrix_classes
 import troubleshooting
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+#os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 troubleshooting.tf_init()
 
@@ -30,60 +30,58 @@ def create_model(classes_number):
 
     # Double CNN initial on sequential data
 
+    cyclic_params_first = {
+        'filters': 5,
+        'kernel_size': 3,
+        'activation': 'relu',
+        'padding': 'same'
+    }
+    cyclic_params_second = {
+        'filters': 5,
+        'kernel_size': 3,
+        'activation': 'relu',
+        'padding': 'same'
+    }
+
     cnn1h = tf.keras.layers.Conv1D(
-        filters=5,
-        kernel_size=3,
-        activation='relu',
-        padding='same'
+        **cyclic_params_first
     )(inputs_ch)
     cnn1d = tf.keras.layers.Conv1D(
-        filters=5,
-        kernel_size=3,
-        activation='relu',
-        padding='same'
+        **cyclic_params_first
     )(inputs_cd)
     cnn1w = tf.keras.layers.Conv1D(
-        filters=5,
-        kernel_size=3,
-        activation='relu',
-        padding='same'
+        **cyclic_params_first
     )(inputs_cw)
+
     cnn2h = tf.keras.layers.Conv1D(
-        filters=25,
-        kernel_size=3,
-        activation='relu',
-        padding='same'
+        **cyclic_params_second
     )(cnn1h)
     cnn2d = tf.keras.layers.Conv1D(
-        filters=5,
-        kernel_size=3,
-        activation='relu',
-        padding='same'
+        **cyclic_params_second
     )(cnn1d)
     cnn2w = tf.keras.layers.Conv1D(
-        filters=5,
-        kernel_size=3,
-        activation='relu',
-        padding='same'
+        **cyclic_params_second
     )(cnn1w)
+
+    bn1cnn1h = tf.keras.layers.BatchNormalization()(cnn2h)
+    bn1cnn1d = tf.keras.layers.BatchNormalization()(cnn2d)
+    bn1cnn1w = tf.keras.layers.BatchNormalization()(cnn2w)
 
     # RNN on sequential data
 
-    lstm1h = tf.keras.layers.LSTM(
-        units=5
-    )(cnn2h)
-    lstm1d = tf.keras.layers.LSTM(
-        units=5
-    )(cnn2d)
-    lstm1w = tf.keras.layers.LSTM(
-        units=5
-    )(cnn2w)
+    lstm1h = tf.keras.layers.LSTM(units=5)(bn1cnn1h)
+    lstm1d = tf.keras.layers.LSTM(units=5)(bn1cnn1d)
+    lstm1w = tf.keras.layers.LSTM(units=5)(bn1cnn1w)
+
+    bn1lstm1h = tf.keras.layers.BatchNormalization()(lstm1h)
+    bn1lstm1d = tf.keras.layers.BatchNormalization()(lstm1d)
+    bn1lstm1w = tf.keras.layers.BatchNormalization()(lstm1w)
 
     # Concatenate all
     concat0 = tf.keras.layers.Concatenate()([
-        lstm1h,
-        lstm1d,
-        lstm1w,
+        bn1lstm1h,
+        bn1lstm1d,
+        bn1lstm1w,
         inputs_th,
         inputs_tw,
         inputs_tc
@@ -113,8 +111,8 @@ def create_model(classes_number):
 
 def main():
 
-    BATCH_SIZE = 64
-    EPOCHS = 10
+    BATCH_SIZE = 256
+    EPOCHS = 15
     EPOCH_SAVE_PERIOD = 5
     DATASET_PERCENTAGE = 0.001
 
@@ -146,7 +144,7 @@ def main():
         train_weights_set = np.load(os.path.join(args.input, 'train_weights.npy'), allow_pickle=True)
         eval_weights_set = np.load(os.path.join(args.input, 'eval_weights.npy'), allow_pickle=True)
 
-    debug = True
+    debug = False
     scale = DATASET_PERCENTAGE
     if debug:
         train_set = train_set[:round(len(train_set) * scale)]
@@ -174,13 +172,13 @@ def main():
     # required as ModelCheckpoint is using sys not lib
     checkpoint_filepath = os.path.join(
         training_dir,
-        "saved-model-{epoch:03d}-{val_loss:.2f}.h5"
+        "saved-model-{epoch:03d}.h5"
     )
 
     model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
         filepath=checkpoint_filepath,
-        save_freq='epoch', #EPOCH_SAVE_PERIOD * (int(math.ceil(len(train_set) / BATCH_SIZE))) + 1,
-        period=EPOCH_SAVE_PERIOD,
+        save_freq=EPOCH_SAVE_PERIOD * (int(math.ceil(len(train_set) / BATCH_SIZE))),
+        #period=EPOCH_SAVE_PERIOD,
         verbose=1,
         monitor='val_loss'
     )
@@ -230,7 +228,7 @@ def main():
             eval_weights_set
         ),
         batch_size=BATCH_SIZE, epochs=EPOCHS,
-        verbose=1,
+        verbose=2,
         callbacks=[tensorboard_callback, model_checkpoint_callback]
     )
 

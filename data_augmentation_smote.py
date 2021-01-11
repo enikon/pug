@@ -2,6 +2,8 @@ import numpy as np
 import argparse
 from imblearn.over_sampling import SMOTE
 
+from data_summary import save_data_summary
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -10,6 +12,8 @@ def main():
     parser.add_argument('-cn', '--classes_number', help="how many classes in classification, 0 means regression",
                         default=5, type=int)
     parser.add_argument('-s', '--seed', help="seed for random smote", default=800, type=int)
+    parser.add_argument('-ds', '--data_summary', help="data summary file", default='../dataset_summary.txt')
+
     args = parser.parse_args()
 
     if args.classes_number == 0:
@@ -28,6 +32,8 @@ def main():
     np.random.shuffle(resampled)
 
     np.save(args.output_train, resampled, allow_pickle=True)
+
+    save_data_summary(args.data_summary, np.sum(resampled[:, y_slice], axis=0), 0.0, 1.0 / args.classes_number)
 
 
 if __name__ == "__main__":
