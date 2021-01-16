@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import os
 import argparse
-import shutil
 
 from tensorflow.python.keras.utils.np_utils import to_categorical
 
@@ -27,8 +26,8 @@ def main():
     parser.add_argument('-o', '--output', help="output root folder", default='../dataset')
     parser.add_argument('-seu', '--split_eval_user', help="percentage of data to be in evaluation set by users", default=0.0, type=float)
     parser.add_argument('-stu', '--split_test_user', help="percentage of data to be in test set by users", default=0.0, type=float)
-    parser.add_argument('-set', '--split_eval_time', help="percentage of data to be in evaluation set by time period", default=0.1, type=float)
-    parser.add_argument('-stt', '--split_test_time', help="percentage of data to be in test set by time period", default=0.1, type=float)
+    parser.add_argument('-set', '--split_eval_time', help="percentage of data to be in evaluation set by time period", default=0.05, type=float)
+    parser.add_argument('-stt', '--split_test_time', help="percentage of data to be in test set by time period", default=0.05, type=float)
 
     parser.add_argument('-qh', '--sequence_hours_size', help="length input per one entry", default=24, type=int)
     parser.add_argument('-qd', '--sequence_days_size', help="how many days of the same hour in the input per one entry", default=7, type=int)
@@ -41,11 +40,6 @@ def main():
         print("MyError: No input directory found.")
         return
 
-    # Clear directory
-    # TODO DONE WARNING failsafe
-    if os.path.realpath(args.output) == "C:\\GIT\\dataset" \
-            and os.path.exists(args.output):
-        shutil.rmtree(args.output)
     os.makedirs(args.output)
 
     train_set_path = os.path.join(args.output, 'train')

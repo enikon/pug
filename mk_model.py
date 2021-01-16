@@ -11,108 +11,18 @@ import tensorflow_addons as tfa
 import utils
 from plots import show_confusion_matrix, show_confusion_matrix_classes
 import troubleshooting
+
 #os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 troubleshooting.tf_init()
 
 split_counts = [24, 7, 7, 24, 7, 5]
-split_list = list(accumulate(split_counts[:-1]))
 
 
-def create_model(classes_number):
-    #                    # batch size, num time steps, num features
-    inputs_ch = tf.keras.Input(shape=(split_counts[0], 1))
-    inputs_cd = tf.keras.Input(shape=(split_counts[1], 1))
-    inputs_cw = tf.keras.Input(shape=(split_counts[2], 1))
-    inputs_th = tf.keras.Input(shape=(split_counts[3],))
-    inputs_tw = tf.keras.Input(shape=(split_counts[4],))
-    inputs_tc = tf.keras.Input(shape=(split_counts[5],))
+def main(_args):
 
-    # Double CNN initial on sequential data
-
-    cyclic_params_first = {
-        'filters': 5,
-        'kernel_size': 3,
-        'activation': 'relu',
-        'padding': 'same'
-    }
-    cyclic_params_second = {
-        'filters': 5,
-        'kernel_size': 3,
-        'activation': 'relu',
-        'padding': 'same'
-    }
-
-    cnn1h = tf.keras.layers.Conv1D(
-        **cyclic_params_first
-    )(inputs_ch)
-    cnn1d = tf.keras.layers.Conv1D(
-        **cyclic_params_first
-    )(inputs_cd)
-    cnn1w = tf.keras.layers.Conv1D(
-        **cyclic_params_first
-    )(inputs_cw)
-
-    cnn2h = tf.keras.layers.Conv1D(
-        **cyclic_params_second
-    )(cnn1h)
-    cnn2d = tf.keras.layers.Conv1D(
-        **cyclic_params_second
-    )(cnn1d)
-    cnn2w = tf.keras.layers.Conv1D(
-        **cyclic_params_second
-    )(cnn1w)
-
-    bn1cnn1h = tf.keras.layers.BatchNormalization()(cnn2h)
-    bn1cnn1d = tf.keras.layers.BatchNormalization()(cnn2d)
-    bn1cnn1w = tf.keras.layers.BatchNormalization()(cnn2w)
-
-    # RNN on sequential data
-
-    lstm1h = tf.keras.layers.LSTM(units=5)(bn1cnn1h)
-    lstm1d = tf.keras.layers.LSTM(units=5)(bn1cnn1d)
-    lstm1w = tf.keras.layers.LSTM(units=5)(bn1cnn1w)
-
-    bn1lstm1h = tf.keras.layers.BatchNormalization()(lstm1h)
-    bn1lstm1d = tf.keras.layers.BatchNormalization()(lstm1d)
-    bn1lstm1w = tf.keras.layers.BatchNormalization()(lstm1w)
-
-    # Concatenate all
-    concat0 = tf.keras.layers.Concatenate()([
-        bn1lstm1h,
-        bn1lstm1d,
-        bn1lstm1w,
-        inputs_th,
-        inputs_tw,
-        inputs_tc
-    ])
-
-    # DNN Categorical
-    dense1 = tf.keras.layers.Dense(15, activation=tf.nn.relu)(concat0)
-    dense2 = tf.keras.layers.Dense(10, activation=tf.nn.relu)(dense1)
-
-    if classes_number == 0:
-        outputs = tf.keras.layers.Dense(1, activation=tf.nn.sigmoid)(dense2)
-    else:
-        outputs = tf.keras.layers.Dense(classes_number, activation=tf.nn.softmax)(dense2)
-
-    model = tf.keras.Model(
-        inputs=[
-            inputs_ch,
-            inputs_cd,
-            inputs_cw,
-            inputs_th,
-            inputs_tw,
-            inputs_tc
-        ], outputs=outputs)
-
-    return model
-
-
-def main():
-
-    BATCH_SIZE = 256
-    EPOCHS = 15
+    BATCH_SIZE = 512
+    EPOCHS = 50
     EPOCH_SAVE_PERIOD = 5
     DATASET_PERCENTAGE = 0.001
 
@@ -124,19 +34,27 @@ def main():
 
     parser.add_argument('-cn', '--classes_number', help="number of output classes", default=5, type=int)
     parser.add_argument('-tt', '--train_type', help="name of train file", default='train')
+    parser.add_argument('-et', '--eval_type', help="name of eval file", default='eval')
+    parser.add_argument('-st', '--test_type', help="name of test file", default='test')
     parser.add_argument('-iw', '--is_weighted', help="will training use sample weights", default=True, type=utils.str2bool, nargs='?', const=True)
 
-    # parser.add_argument('-qh', '--sequence_hours_size', help="length input per one entry", default=24, type=int)
-    # parser.add_argument('-qd', '--sequence_days_size', help="how many days of the same hour in the input per one entry", default=7, type=int)
-    # parser.add_argument('-qw', '--sequence_weekdays_size', help="how many days of the same hour and weekday in the input per one cycle", default=7, type=int)
-    args = parser.parse_args()
+    parser.add_argument('-m', '--model_name', help="name of model script in script_models directory", default="new_baseline")
+    parser.add_argument('-qh', '--sequence_hours_size', help="length input per one entry", default=24, type=int)
+    parser.add_argument('-qd', '--sequence_days_size', help="how many days of the same hour in the input per one entry", default=7, type=int)
+    parser.add_argument('-qw', '--sequence_weekdays_size', help="how many days of the same hour and weekday in the input per one cycle", default=7, type=int)
+    args = parser.parse_args(*_args)
 
-    # Model weights are saved at the end of every epoch, if it's the best seen
-    # so far.
+    # Required for qh qd qw changes
+    split_counts[0] = args.sequence_hours_size
+    split_counts[1] = args.sequence_days_size
+    split_counts[2] = args.sequence_weekdays_size
+    split_list = list(accumulate(split_counts[:-1]))
+
+    model_script = __import__("script_models."+args.model_name, fromlist=[''])
 
     train_set = np.load(os.path.join(args.input, args.train_type+'.npy'), allow_pickle=True)
-    eval_set = np.load(os.path.join(args.input, 'eval.npy'), allow_pickle=True)
-    test_set = np.load(os.path.join(args.input, 'test.npy'), allow_pickle=True)
+    eval_set = np.load(os.path.join(args.input, args.eval_type + '.npy'), allow_pickle=True)
+    test_set = np.load(os.path.join(args.input, args.test_type + '.npy'), allow_pickle=True)
     train_weights_set = None
     eval_weights_set = None
 
@@ -183,7 +101,7 @@ def main():
         monitor='val_loss'
     )
 
-    model = create_model(args.classes_number)
+    model = model_script.create_model(args.classes_number, split_counts)
     if args.classes_number == 0:
         model.compile(
             optimizer=tf.keras.optimizers.Adam(learning_rate=5e-4),
@@ -195,7 +113,7 @@ def main():
         )
     else:
         model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=5e-4),
+            optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
             loss=tf.keras.losses.CategoricalCrossentropy(),
             metrics=[
                 tf.keras.metrics.AUC(),
@@ -205,11 +123,12 @@ def main():
             ]
         )
 
-    x_slice = slice(0, 74)
-    y_slice = slice(74, 75)
+    x_slice = slice(0, -args.classes_number)
+    y_slice = slice(-args.classes_number, None)
 
-    if args.classes_number > 0:
-        y_slice = slice(74, 75 + args.classes_number)
+    if args.classes_number == 0:
+        x_slice = slice(0, -1)
+        y_slice = slice(-1, None)
 
     # model = tf.keras.models.load_model("C:\\GIT\\checkpoints\\20210110-150053\\saved-model-025-1.02.h5")
 
@@ -273,4 +192,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main({})
