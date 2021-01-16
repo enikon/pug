@@ -35,6 +35,8 @@ def main():
 
     parser.add_argument('-cn', '--classes_number', help="how many classes in classification, 0 means regression",
                         default=0, type=int)
+    parser.add_argument('-th', '--threshold', help="for binary threshold for the class binarisation",
+                        default=0.3)
     args = parser.parse_args()
     if not os.path.exists(args.input):
         print("MyError: No input directory found.")
@@ -124,7 +126,14 @@ def main():
 
             # TODO Fuzzify class assignment for border classes
 
-            if args.classes_number != 0:
+            if args.classes_number == 0:
+                pass
+            elif args.classes_number == 2:
+                arr_loss = to_categorical(
+                    np.minimum(np.floor(arr_loss / args.threshold), 1.).astype(float),
+                    num_classes=args.classes_number
+                )
+            else:
                 arr_loss = to_categorical(
                     np.round(arr_loss * (args.classes_number-1)).astype(float),
                     num_classes=args.classes_number

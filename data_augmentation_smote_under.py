@@ -47,8 +47,12 @@ def main(_args):
 
     pipeline = Pipeline(steps=steps)
 
-    dst, y = pipeline.fit_resample(src[:, x_slice], src[:, y_slice])
-    resampled = np.concatenate((dst, y), axis=1)
+    if args.classes_number != 2:
+        dst, y = pipeline.fit_resample(src[:, x_slice], src[:, y_slice])
+        resampled = np.concatenate((dst, y), axis=1)
+    else:
+        dst, y = pipeline.fit_resample(src[:, x_slice], src[:, -1])
+        resampled = np.concatenate((dst, np.expand_dims(y, axis=1)), axis=1)
 
     np.random.seed(args.seed)
     np.random.shuffle(resampled)

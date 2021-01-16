@@ -80,6 +80,8 @@ def create_model(classes_number, split_counts):
     #dp2 = tf.keras.layers.Dropout(0.15)(dense2)
 
     if classes_number == 0:
+        outputs = tf.keras.layers.Dense(1, activation=tf.nn.relu)(dense2)
+    elif classes_number == 2:
         outputs = tf.keras.layers.Dense(1, activation=tf.nn.sigmoid)(dense2)
     else:
         outputs = tf.keras.layers.Dense(classes_number, activation=tf.nn.softmax)(dense2)

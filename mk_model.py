@@ -111,6 +111,17 @@ def main(_args):
                 tf.keras.metrics.MeanAbsoluteError(),
             ]
         )
+    elif args.classes_number == 2:
+        model.compile(
+            optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
+            loss=tf.keras.losses.BinaryCrossentropy(),
+            metrics=[
+                tf.keras.metrics.AUC(),
+                tf.keras.metrics.BinaryAccuracy(),
+                tf.keras.metrics.Hinge(),
+                tfa.metrics.F1Score(num_classes=1, threshold=0.5)
+            ]
+        )
     else:
         model.compile(
             optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
@@ -126,7 +137,7 @@ def main(_args):
     x_slice = slice(0, -args.classes_number)
     y_slice = slice(-args.classes_number, None)
 
-    if args.classes_number == 0:
+    if args.classes_number == 0 or args.classes_number == 2:
         x_slice = slice(0, -1)
         y_slice = slice(-1, None)
 
