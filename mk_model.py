@@ -12,7 +12,7 @@ import utils
 from plots import show_confusion_matrix, show_confusion_matrix_classes
 import troubleshooting
 
-#os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 troubleshooting.tf_init()
 
@@ -184,14 +184,23 @@ def main(_args):
         batch_size=BATCH_SIZE
     )
 
+    if args.classes_number == 2:
+        test_pred = np.array(list(map(lambda tab: [1.] if tab[0] > 0.5 else [0.], test_predict)))
+    else:
+        test_pred = test_predict
+
     show_confusion_matrix_classes(
         test_set[:, y_slice],
-        test_predict,
+        test_pred,
         args.classes_number
     )
 
-    selected_real = np.array(list(map(lambda tab: np.argmax(tab), test_set[:, y_slice])))
-    selected_pred = np.array(list(map(lambda tab: np.argmax(tab), test_predict)))
+    if args.classes_number == 2:
+        selected_real = np.array(list(map(lambda tab: int(tab[0]), test_set[:, y_slice])))
+        selected_pred = np.array(list(map(lambda tab: int(tab[0]), test_pred)))
+    else:
+        selected_real = np.array(list(map(lambda tab: np.argmax(tab), test_set[:, y_slice])))
+        selected_pred = np.array(list(map(lambda tab: np.argmax(tab), test_pred)))
 
     f1 = f1_score(selected_real, selected_pred, average='macro')
 
