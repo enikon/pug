@@ -6,7 +6,7 @@ import mk_model
 def main(_args):
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', help="input folder", default='../dataset')
-    parser.add_argument('-e', '--extension', help="file extension", default='base')
+    parser.add_argument('-e', '--extension', help="file extension", default='_base')
     parser.add_argument('-m', '--model', help="model name", default='new_baseline')
     args = parser.parse_args(*_args)
 
