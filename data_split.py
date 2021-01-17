@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 import os
 import argparse
-import shutil
+
+from tensorflow.python.keras.utils.np_utils import to_categorical
 
 
 def cycle_array(source, sequence_length, offset, array_range):
@@ -25,23 +26,22 @@ def main():
     parser.add_argument('-o', '--output', help="output root folder", default='../dataset')
     parser.add_argument('-seu', '--split_eval_user', help="percentage of data to be in evaluation set by users", default=0.0, type=float)
     parser.add_argument('-stu', '--split_test_user', help="percentage of data to be in test set by users", default=0.0, type=float)
-    parser.add_argument('-set', '--split_eval_time', help="percentage of data to be in evaluation set by time period", default=0.1, type=float)
-    parser.add_argument('-stt', '--split_test_time', help="percentage of data to be in test set by time period", default=0.1, type=float)
+    parser.add_argument('-set', '--split_eval_time', help="percentage of data to be in evaluation set by time period", default=0.05, type=float)
+    parser.add_argument('-stt', '--split_test_time', help="percentage of data to be in test set by time period", default=0.05, type=float)
 
     parser.add_argument('-qh', '--sequence_hours_size', help="length input per one entry", default=24, type=int)
     parser.add_argument('-qd', '--sequence_days_size', help="how many days of the same hour in the input per one entry", default=7, type=int)
     parser.add_argument('-qw', '--sequence_weekdays_size', help="how many days of the same hour and weekday in the input per one cycle", default=7, type=int)
 
+    parser.add_argument('-cn', '--classes_number', help="how many classes in classification, 0 means regression",
+                        default=0, type=int)
+    parser.add_argument('-th', '--threshold', help="for binary threshold for the class binarisation",
+                        default=0.3)
     args = parser.parse_args()
     if not os.path.exists(args.input):
         print("MyError: No input directory found.")
         return
 
-    # Clear directory
-    # TODO DONE WARNING failsafe
-    if os.path.realpath(args.output) == "D:\\Mikolaj\\Desktop\\PUG\\dataset" \
-            and os.path.exists(args.output):
-        shutil.rmtree(args.output)
     os.makedirs(args.output)
 
     train_set_path = os.path.join(args.output, 'train')
@@ -124,12 +124,27 @@ def main():
 
             arr_loss = np.expand_dims(df_trimmed["loss"].to_numpy(), axis=-1)
 
+            # TODO Fuzzify class assignment for border classes
+
+            if args.classes_number == 0:
+                pass
+            elif args.classes_number == 2:
+                arr_loss = to_categorical(
+                    np.minimum(np.floor(arr_loss / args.threshold), 1.).astype(float),
+                    num_classes=args.classes_number
+                )
+            else:
+                arr_loss = to_categorical(
+                    np.round(arr_loss * (args.classes_number-1)).astype(float),
+                    num_classes=args.classes_number
+                )
+
             arr_stacked = np.hstack((
                 arr_ch, arr_cd, arr_cw,
                 arr_hour, arr_weekday,
                 arr_cat,
                 arr_loss
-            ))
+             ))
 
             # -----------------------
             #  TRAIN/EVAL/TEST SPLIT
@@ -154,9 +169,9 @@ def main():
 
         print("100.0 %")
 
-    np.save(train_set_path, train_set, allow_pickle=True)
-    np.save(eval_set_path, eval_set, allow_pickle=True)
-    np.save(test_set_path, test_set, allow_pickle=True)
+    np.save(train_set_path, np.stack(train_set), allow_pickle=True)
+    np.save(eval_set_path, np.stack(eval_set), allow_pickle=True)
+    np.save(test_set_path, np.stack(test_set), allow_pickle=True)
 
 
 # HOW TO LOAD THE DATABASE
