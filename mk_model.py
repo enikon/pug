@@ -101,10 +101,11 @@ def main(_args):
         monitor='val_loss'
     )
 
+    learning_rate = 1e-4
     model = model_script.create_model(args.classes_number, split_counts)
     if args.classes_number == 0:
         model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=5e-4),
+            optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
             loss=tf.keras.losses.MeanSquaredError(),
             metrics=[
                 tf.keras.metrics.RootMeanSquaredError(),
@@ -113,7 +114,7 @@ def main(_args):
         )
     elif args.classes_number == 2:
         model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
+            optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
             loss=tf.keras.losses.BinaryCrossentropy(),
             metrics=[
                 tf.keras.metrics.AUC(),
@@ -124,7 +125,7 @@ def main(_args):
         )
     else:
         model.compile(
-            optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3),
+            optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
             loss=tf.keras.losses.CategoricalCrossentropy(),
             metrics=[
                 tf.keras.metrics.AUC(),

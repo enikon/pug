@@ -15,13 +15,13 @@ def create_model(classes_number, split_counts):
     cyclic_params_first = {
         'filters': 5,
         'kernel_size': 3,
-        'activation': 'relu',
+        'activation': 'elu',
         'padding': 'same'
     }
     cyclic_params_second = {
         'filters': 15,
         'kernel_size': 3,
-        'activation': 'relu',
+        'activation': 'elu',
         'padding': 'same',
     }
 
@@ -55,9 +55,9 @@ def create_model(classes_number, split_counts):
 
     # RNN on sequential data
 
-    lstm1h = tf.keras.layers.LSTM(units=5)(bn1cnn1h)
-    lstm1d = tf.keras.layers.LSTM(units=5)(bn1cnn1d)
-    lstm1w = tf.keras.layers.LSTM(units=5)(bn1cnn1w)
+    lstm1h = tf.keras.layers.LSTM(units=5, activation=tf.nn.elu)(bn1cnn1h)
+    lstm1d = tf.keras.layers.LSTM(units=5, activation=tf.nn.elu)(bn1cnn1d)
+    lstm1w = tf.keras.layers.LSTM(units=5, activation=tf.nn.elu)(bn1cnn1w)
 
     bn1lstm1h = tf.keras.layers.BatchNormalization()(lstm1h)
     bn1lstm1d = tf.keras.layers.BatchNormalization()(lstm1d)
@@ -74,12 +74,12 @@ def create_model(classes_number, split_counts):
     ])
 
     # DNN Categorical
-    dense1 = tf.keras.layers.Dense(35, activation=tf.nn.relu, kernel_regularizer=tf.keras.regularizers.l2(l=0.1))(concat0)
-    dense2 = tf.keras.layers.Dense(20, activation=tf.nn.relu, kernel_regularizer=tf.keras.regularizers.l2(l=0.1))(dense1)
+    dense1 = tf.keras.layers.Dense(35, activation=tf.nn.elu, kernel_regularizer=tf.keras.regularizers.l2(l=0.1))(concat0)
+    dense2 = tf.keras.layers.Dense(20, activation=tf.nn.elu, kernel_regularizer=tf.keras.regularizers.l2(l=0.1))(dense1)
     dp2 = tf.keras.layers.Dropout(0.15)(dense2)
 
     if classes_number == 0:
-        outputs = tf.keras.layers.Dense(1, activation=tf.nn.relu)(dp2)
+        outputs = tf.keras.layers.Dense(1, activation=tf.nn.sigmoid)(dp2)
     elif classes_number == 2:
         outputs = tf.keras.layers.Dense(1, activation=tf.nn.sigmoid)(dp2)
     else:

@@ -20,6 +20,14 @@ def cycle_array(source, sequence_length, offset, array_range):
     return target
 
 
+def normal_minmax(arr, mmin, mmax, ignore):
+    return (arr-mmin)/(mmax-mmin) * ignore + arr * (1-ignore)
+
+
+def normal_standard(arr, mmean, mvar, ignore):
+    return (arr-mmean)/mvar * ignore + arr * (1-ignore)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', help="input root folder", default='../raw_dataset')
@@ -169,9 +177,28 @@ def main():
 
         print("100.0 %")
 
-    np.save(train_set_path, np.stack(train_set), allow_pickle=True)
-    np.save(eval_set_path, np.stack(eval_set), allow_pickle=True)
-    np.save(test_set_path, np.stack(test_set), allow_pickle=True)
+    full_train_set = np.stack(train_set)
+
+    arr_size = args.sequence_hours_size + args.sequence_days_size + args.sequence_weekdays_size
+    ignore = np.ones(np.shape(full_train_set[0]))
+    ignore[arr_size:None] = 0
+
+    mmin = np.min(full_train_set[arr_size:None])
+    mmax = np.max(full_train_set[arr_size:None])
+    mmean = np.mean(full_train_set[arr_size:None])
+    mstd_dev = np.std(full_train_set[arr_size:None])
+
+    # normalised_train_set = normal_minmax(full_train_set, mmin, mmax, ignore)
+    # normalised_eval_set = normal_minmax(np.stack(eval_set), mmin, mmax, ignore)
+    # normalised_test_set = normal_minmax(np.stack(test_set), mmin, mmax, ignore)
+
+    normalised_train_set = normal_standard(full_train_set, mmean, mstd_dev, ignore)
+    normalised_eval_set = normal_standard(np.stack(eval_set), mmean, mstd_dev, ignore)
+    normalised_test_set = normal_standard(np.stack(test_set), mmean, mstd_dev, ignore)
+
+    np.save(train_set_path, normalised_train_set, allow_pickle=True)
+    np.save(eval_set_path, normalised_eval_set, allow_pickle=True)
+    np.save(test_set_path, normalised_test_set, allow_pickle=True)
 
 
 # HOW TO LOAD THE DATABASE
